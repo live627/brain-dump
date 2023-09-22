@@ -9,48 +9,76 @@ function QuickModifyTopic(oOptions)
 	this.oCurSubjectDiv = null;
 	this.oTopicModHandle = document;
 	this.bInEditMode = false;
-	this.bMouseOnDiv = false;
-	this.init();
-}
+	this.aTextFields = ['subject'];
+	this.oSourceElments = {};
 
-// Used to initialise the object event handlers
-QuickModifyTopic.prototype.init = function ()
-{
-	// Attach some events to it so we can respond to actions
-	this.oTopicModHandle.instanceRef = this;
+	const oElement = document.getElementById(oOptions.sTopicContainer);
+	for (const el of oElement.children)
+	{
+		if (el.children[1].dataset.msgId)
+			el.children[1].addEventListener(
+				'dblclick',
+				this.modify_topic.bind(this, el.children[1].dataset.msgId)
+			);
+	}
 
-	// detect and act on keypress
-	this.oTopicModHandle.onkeydown = function (oEvent) {return this.instanceRef.modify_topic_keypress(oEvent);};
+	this.oPlugins = {
+		plugins: {},
+		add(name)
+		{
+			this.plugins[plugin] = name;
+		},
+		invoke(name, ...args)
+		{
+			for (const plugin in this.plugins)
+				if (this.plugins[plugin][name])
+				{
+					const val = this.plugins[plugin][name](...args);
+
+					if (val != null)
+						return val;
+				}
+		}
+	};
 
 	// Used to detect when we've stopped editing.
-	this.oTopicModHandle.onclick = function (oEvent) {return this.instanceRef.modify_topic_click(oEvent);};
+	this.oTopicModHandle.addEventListener('click', function (oEvent)
+	{
+		if (this.bInEditMode && oEvent.target.tagName != 'INPUT')
+			this.modify_topic_save(smf_session_id, smf_session_var);
+	}.bind(this));
 }
 
 // called from the double click in the div
 QuickModifyTopic.prototype.modify_topic = function (topic_id, first_msg_id)
 {
-	// Add backwards compatibility with old themes.
-	if (typeof(cur_session_var) == 'undefined')
-		cur_session_var = 'sesc';
-
-	// already editing
 	if (this.bInEditMode)
 	{
 		// same message then just return, otherwise drop out of this edit.
 		if (this.iCurTopicId == topic_id)
 			return;
-
 		else
 			this.modify_topic_cancel();
 	}
 
 	this.bInEditMode = true;
-	this.bMouseOnDiv = true;
 	this.iCurTopicId = topic_id;
 
-	// Get the topics current subject
-	ajax_indicator(true);
-	sendXMLDocument.call(this, smf_prepareScriptUrl(smf_scripturl) + "action=quotefast;quote=" + first_msg_id + ";modify;xml", '', this.onDocReceived_modify_topic);
+	this.sCurMessageId = 'msg_' + first_msg_id;
+	this.oCurSubjectDiv = document.getElementById('msg_' + first_msg_id);
+	var oInput = document.createElement('input');
+	oInput.type = 'text';
+	oInput.name = 'subject';
+	oInput.value = this.oCurSubjectDiv.textContent;
+	oInput.size = '60';
+	oInput.style.width = '99%';
+	oInput.maxlength = '80';
+	oInput.onkeydown = this.modify_topic_keypress.bind(this);
+	this.oCurSubjectDiv.after(oInput);
+	oInput.focus();
+
+	// Here we hide any other things they want hidden on edit.
+	this.set_hidden_topic_areas('none');
 }
 
 // callback function from the modify_topic ajax call
@@ -63,11 +91,6 @@ QuickModifyTopic.prototype.onDocReceived_modify_topic = function (XMLDoc)
 		return true;
 	}
 
-	this.sCurMessageId = XMLDoc.getElementsByTagName("message")[0].getAttribute("id");
-	this.oCurSubjectDiv = document.getElementById('msg_' + this.sCurMessageId.substr(4));
-	this.sBuffSubject = getInnerHTML(this.oCurSubjectDiv);
-
-	// Here we hide any other things they want hidden on edit.
 	this.set_hidden_topic_areas('none');
 
 	// Show we are in edit mode and allow the edit
@@ -78,7 +101,10 @@ QuickModifyTopic.prototype.onDocReceived_modify_topic = function (XMLDoc)
 // Cancel out of an edit and return things to back to what they were
 QuickModifyTopic.prototype.modify_topic_cancel = function ()
 {
-	setInnerHTML(this.oCurSubjectDiv, this.sBuffSubject);
+	for (var i of this.aTextFields)
+		if (i in document.forms.quickModForm)
+			document.forms.quickModForm[i].remove();
+
 	this.set_hidden_topic_areas('');
 	this.bInEditMode = false;
 
@@ -95,36 +121,20 @@ QuickModifyTopic.prototype.set_hidden_topic_areas = function (set_style)
 	}
 }
 
-// For templating, shown that an inline edit is being made.
-QuickModifyTopic.prototype.modify_topic_show_edit = function (subject)
-{
-	// Just template the subject.
-	setInnerHTML(this.oCurSubjectDiv, '<input type="text" name="subject" value="' + subject + '" size="60" style="width: 95%;" maxlength="80"><input type="hidden" name="topic" value="' + this.iCurTopicId + '"><input type="hidden" name="msg" value="' + this.sCurMessageId.substr(4) + '">');
-
-	// attach mouse over and out events to this new div
-	this.oCurSubjectDiv.instanceRef = this;
-	this.oCurSubjectDiv.onmouseout = function (oEvent) {return this.instanceRef.modify_topic_mouseout(oEvent);};
-	this.oCurSubjectDiv.onmouseover = function (oEvent) {return this.instanceRef.modify_topic_mouseover(oEvent);};
-}
-
 // Yup thats right, save it
 QuickModifyTopic.prototype.modify_topic_save = function (cur_session_id, cur_session_var)
 {
 	if (!this.bInEditMode)
 		return true;
 
-	// Add backwards compatibility with old themes.
-	if (typeof(cur_session_var) == 'undefined')
-		cur_session_var = 'sesc';
-
-	var i, x = new Array();
-	x[x.length] = 'subject=' + document.forms.quickModForm['subject'].value.php_to8bit().php_urlencode();
-	x[x.length] = 'topic=' + parseInt(document.forms.quickModForm.elements['topic'].value);
-	x[x.length] = 'msg=' + parseInt(document.forms.quickModForm.elements['msg'].value);
+	let x = [];
+	for (var i of this.aTextFields)
+		if (i in document.forms.quickModForm)
+			x.push(i + '=' + document.forms.quickModForm[i].value.php_to8bit().php_urlencode());
 
 	// send in the call to save the updated topic subject
 	ajax_indicator(true);
-	sendXMLDocument.call(this, smf_prepareScriptUrl(smf_scripturl) + "action=jsmodify;topic=" + parseInt(document.forms.quickModForm.elements['topic'].value) + ";" + cur_session_var + "=" + cur_session_id + ";xml", x.join("&"), this.modify_topic_done);
+	sendXMLDocument.call(this, smf_prepareScriptUrl(smf_scripturl) + "action=jsmodify;topic=" + this.iCurTopicId + ";" + cur_session_var + "=" + cur_session_id + ";xml", x.join("&"), this.modify_topic_done);
 
 	return false;
 }
@@ -142,7 +152,7 @@ QuickModifyTopic.prototype.modify_topic_done = function (XMLDoc)
 	}
 
 	var message = XMLDoc.getElementsByTagName("smf")[0].getElementsByTagName("message")[0];
-	var subject = message.getElementsByTagName("subject")[0];
+	var subject = message.getElementsByTagName("subject")[0].childNodes[0].nodeValue;
 	var error = message.getElementsByTagName("error")[0];
 
 	// No subject or other error?
@@ -150,22 +160,24 @@ QuickModifyTopic.prototype.modify_topic_done = function (XMLDoc)
 	if (!subject || error)
 		return false;
 
-	this.modify_topic_hide_edit(subject.childNodes[0].nodeValue);
+	setInnerHTML(this.oCurSubjectDiv, '<a href="' + smf_scripturl + '?topic=' + this.iCurTopicId + '.0">' + subject + '<' +'/a>')
 	this.set_hidden_topic_areas('');
 	this.bInEditMode = false;
+
+	for (var i of this.aTextFields)
+	{
+		if (this.oSourceElments[i])
+			setInnerHTML(this.oSourceElments[i], message.getElementsByTagName(i)[0].childNodes[0].nodeValue);
+
+		if (i in document.forms.quickModForm)
+			document.forms.quickModForm[i].remove();
+	}
 
 	// redo tips if they are on since we just pulled the rug out on this one
 	if ($.isFunction($.fn.SMFtooltip))
 		$('.preview').SMFtooltip().smf_tooltip_off;
 
 	return false;
-}
-
-// Done with the edit, put in new subject and link.
-QuickModifyTopic.prototype.modify_topic_hide_edit = function (subject)
-{
-	// Re-template the subject!
-	setInnerHTML(this.oCurSubjectDiv, '<a href="' + smf_scripturl + '?topic=' + this.iCurTopicId + '.0">' + subject + '<' +'/a>');
 }
 
 // keypress event ... like enter or escape
@@ -190,25 +202,6 @@ QuickModifyTopic.prototype.modify_topic_keypress = function (oEvent)
 				oEvent.preventDefault();
 		}
 	}
-}
-
-// A click event to signal the finish of the edit
-QuickModifyTopic.prototype.modify_topic_click = function (oEvent)
-{
-	if (this.bInEditMode && !this.bMouseOnDiv)
-		this.modify_topic_save(smf_session_id, smf_session_var);
-}
-
-// Moved out of the editing div
-QuickModifyTopic.prototype.modify_topic_mouseout = function (oEvent)
-{
-	this.bMouseOnDiv = false;
-}
-
-// Moved back over the editing div
-QuickModifyTopic.prototype.modify_topic_mouseover = function (oEvent)
-{
-	this.bMouseOnDiv = true;
 }
 
 // *** QuickReply object.

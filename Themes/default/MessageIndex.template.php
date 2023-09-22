@@ -182,11 +182,11 @@ function template_main()
 						', $topic['is_posted_in'] ? '<span class="main_icons profile_sm"></span>' : '', '
 					</div>
 					<div class="info', !empty($context['can_quick_mod']) ? '' : ' info_block', '">
-						<div ', (!empty($topic['quick_mod']['modify']) ? 'id="topic_' . $topic['first_post']['id'] . '"  ondblclick="oQuickModifyTopic.modify_topic(\'' . $topic['id'] . '\', \'' . $topic['first_post']['id'] . '\');"' : ''), '>';
+						<div', !empty($topic['quick_mod']['modify']) ? ' data-msg-id="' . $topic['first_post']['id'] . '"' : '', '>';
 
 			// Now we handle the icons
 			echo '
-							<div class="icons floatright">';
+							<div id="icons', $topic['first_post']['id'], '" class="icons floatright">';
 
 			if ($topic['is_watched'])
 				echo '
@@ -215,7 +215,7 @@ function template_main()
 							<div class="message_index_title">
 								', $topic['new'] && $context['user']['is_logged'] ? '<a href="' . $topic['new_href'] . '" id="newicon' . $topic['first_post']['id'] . '" class="new_posts">' . $txt['new'] . '</a>' : '', '
 								<span class="preview', $topic['is_sticky'] ? ' bold_text' : '', '" title="', $topic[(empty($modSettings['message_index_preview_first']) ? 'last_post' : 'first_post')]['preview'], '">
-									<span id="msg_', $topic['first_post']['id'], '">', $topic['first_post']['link'], (!$topic['approved'] ? '&nbsp;<em>(' . $txt['awaiting_approval'] . ')</em>' : ''), '</span>
+									<span id="msg', $topic['first_post']['id'], '">', $topic['first_post']['link'], (!$topic['approved'] ? '&nbsp;<em>(' . $txt['awaiting_approval'] . ')</em>' : ''), '</span>
 								</span>
 							</div>
 							<p class="floatleft">
@@ -349,8 +349,9 @@ function template_main()
 	echo '
 	<script>
 		var oQuickModifyTopic = new QuickModifyTopic({
-			aHidePrefixes: Array("lockicon", "stickyicon", "pages", "newicon"),
+			aHidePrefixes: ["icons", "msg", "pages", "newicon"],
 			bMouseOnDiv: false,
+			sTopicContainer: "topic_container",
 		});
 	</script>';
 
