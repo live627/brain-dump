@@ -140,7 +140,6 @@ function template_email_members()
 	</script>
 	<script>
 		var oMemberSuggest = new smc_AutoSuggest({
-			sSelf: \'oMemberSuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'members\',
@@ -149,21 +148,20 @@ function template_email_members()
 			bItemList: true,
 			sPostName: \'member_list\',
 			sURLMask: \'action=profile;u=%item_id%\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 			sItemListContainerId: \'members_container\',
 			aListItems: []
 		});
 		var oExcludeMemberSuggest = new smc_AutoSuggest({
-			sSelf: \'oExcludeMemberSuggest\',
-			sSessionId: \'', $context['session_id'], '\',
-			sSessionVar: \'', $context['session_var'], '\',
+			sSessionId: smf_session_id,
+			sSessionVar: smf_session_var,
 			sSuggestId: \'exclude_members\',
 			sControlId: \'exclude_members\',
 			sSearchType: \'member\',
 			bItemList: true,
 			sPostName: \'exclude_member_list\',
 			sURLMask: \'action=profile;u=%item_id%\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 			sItemListContainerId: \'exclude_members_container\',
 			aListItems: []
 		});
@@ -424,7 +422,7 @@ function template_email_members_send()
 			document.forms.autoSubmit.b.value = "', $txt['email_continue'], ' (" + countdown + ")";
 			countdown--;
 
-			setTimeout("doAutoSubmit();", 1000);
+			setTimeout(doAutoSubmit, 1000);
 		}
 	</script>';
 }

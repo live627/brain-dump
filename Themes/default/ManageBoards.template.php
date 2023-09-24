@@ -607,7 +607,6 @@ function template_modify_board()
 
 	<script>
 		var oModeratorSuggest = new smc_AutoSuggest({
-			sSelf: \'oModeratorSuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'moderators\',
@@ -616,7 +615,7 @@ function template_modify_board()
 			bItemList: true,
 			sPostName: \'moderator_list\',
 			sURLMask: \'action=profile;u=%item_id%\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 			sItemListContainerId: \'moderator_container\',
 			aListItems: [';
 
@@ -632,7 +631,6 @@ function template_modify_board()
 		});
 
 		var oModeratorGroupSuggest = new smc_AutoSuggest({
-			sSelf: \'oModeratorGroupSuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'moderator_groups\',
@@ -641,7 +639,7 @@ function template_modify_board()
 			bItemList: true,
 			sPostName: \'moderator_group_list\',
 			sURLMask: \'action=groups;sa=members;group=%item_id%\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 			sItemListContainerId: \'moderator_group_container\',
 			aListItems: [';
 

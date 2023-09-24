@@ -21,19 +21,6 @@ var is_android = ua.indexOf('android') != -1;
 
 var ajax_indicator_ele = null;
 
-// Some older versions of Mozilla don't have this, for some reason.
-if (!('forms' in document))
-	document.forms = document.getElementsByTagName('form');
-
-// Versions of ie < 9 do not have this built in
-if (!('getElementsByClassName' in document))
-{
-	document.getElementsByClassName = function(className)
-	{
-		return $('".' + className + '"');
-	}
-}
-
 // Get a response from the server.
 function getServerResponse(sUrl, funcCallback, sType, sDataType)
 {
@@ -630,7 +617,7 @@ function isEmptyText(theField)
 	while (theValue.length > 0 && (theValue.charAt(theValue.length - 1) == ' ' || theValue.charAt(theValue.length - 1) == '\t'))
 		theValue = theValue.substring(0, theValue.length - 1);
 
-    return theValue == '';
+	return theValue == '';
 }
 
 // Only allow form submission ONCE.
@@ -745,9 +732,9 @@ function smf_sessionKeepAlive()
 		lastKeepAliveCheck = curTime;
 	}
 
-	window.setTimeout('smf_sessionKeepAlive();', 1200000);
+	window.setTimeout(smf_sessionKeepAlive, 1200000);
 }
-window.setTimeout('smf_sessionKeepAlive();', 1200000);
+window.setTimeout(smf_sessionKeepAlive, 1200000);
 
 // Set a theme option through javascript.
 function smf_setThemeOption(theme_var, theme_value, theme_id, theme_cur_session_id, theme_cur_session_var, theme_additional_vars)
@@ -783,16 +770,13 @@ function expandPages(spanNode, baseLink, firstPage, lastPage, perPage)
 		replacement += baseLink.replace(/%1\$d/, i).replace(/%2\$s/, 1 + i / perPage).replace(/%%/g, '%');
 
 	// Add the new page links.
-	$(spanNode).before(replacement);
+	spanNode.before(replacement);
 
 	if (oldLastPage)
 		// Access the raw DOM element so the native onclick event can be overridden.
-		spanNode.onclick = function ()
-		{
-			expandPages(spanNode, baseLink, lastPage, oldLastPage, perPage);
-		};
+		spanNode.onclick = expandPages.bind(null, spanNode, baseLink, lastPage, oldLastPage, perPage);
 	else
-		$(spanNode).remove();
+		spanNode.remove();
 }
 
 function smc_preCacheImage(sSrc)
@@ -1070,31 +1054,6 @@ function create_ajax_indicator_ele()
 	document.body.appendChild(ajax_indicator_ele);
 }
 
-function createEventListener(oTarget)
-{
-	if (!('addEventListener' in oTarget))
-	{
-		if (oTarget.attachEvent)
-		{
-			oTarget.addEventListener = function (sEvent, funcHandler, bCapture) {
-				oTarget.attachEvent('on' + sEvent, funcHandler);
-			}
-			oTarget.removeEventListener = function (sEvent, funcHandler, bCapture) {
-				oTarget.detachEvent('on' + sEvent, funcHandler);
-			}
-		}
-		else
-		{
-			oTarget.addEventListener = function (sEvent, funcHandler, bCapture) {
-				oTarget['on' + sEvent] = funcHandler;
-			}
-			oTarget.removeEventListener = function (sEvent, funcHandler, bCapture) {
-				oTarget['on' + sEvent] = null;
-			}
-		}
-	}
-}
-
 // This function will retrieve the contents needed for the jump to boxes.
 function grabJumpToContent(elem)
 {
@@ -1183,9 +1142,9 @@ JumpTo.prototype.fillSelect = function (aBoardsAndCategories)
 		// If we've reached the currently selected board add all items so far.
 		if (!aBoardsAndCategories[i].isCategory && aBoardsAndCategories[i].id == this.opt.iCurBoardId)
 		{
-				this.dropdownList.insertBefore(oListFragment, this.dropdownList.options[0]);
-				oListFragment = document.createDocumentFragment();
-				continue;
+			this.dropdownList.insertBefore(oListFragment, this.dropdownList.options[0]);
+			oListFragment = document.createDocumentFragment();
+			continue;
 		}
 
 		if (aBoardsAndCategories[i].isCategory)
@@ -1280,8 +1239,6 @@ IconList.prototype.openPopup = function (oDiv, iMessageId)
 		// Start to fetch its contents.
 		ajax_indicator(true);
 		sendXMLDocument.call(this, smf_prepareScriptUrl(smf_scripturl) + 'action=xmlhttp;sa=messageicons;board=' + this.opt.iBoardId + ';xml', '', this.onIconsReceived);
-
-		createEventListener(document.body);
 	}
 
 	// Set the position of the container.
@@ -1428,73 +1385,9 @@ function smf_prepareScriptUrl(sUrl)
 	return sUrl.indexOf('?') == -1 ? sUrl + '?' : sUrl + (sUrl.charAt(sUrl.length - 1) == '?' || sUrl.charAt(sUrl.length - 1) == '&' || sUrl.charAt(sUrl.length - 1) == ';' ? '' : ';');
 }
 
-var aOnloadEvents = new Array();
 function addLoadEvent(fNewOnload)
 {
-	// If there's no event set, just set this one
-	if (typeof(fNewOnload) == 'function' && (!('onload' in window) || typeof(window.onload) != 'function'))
-		window.onload = fNewOnload;
-
-	// If there's just one event, setup the array.
-	else if (aOnloadEvents.length == 0)
-	{
-		aOnloadEvents[0] = window.onload;
-		aOnloadEvents[1] = fNewOnload;
-		window.onload = function() {
-			for (var i = 0, n = aOnloadEvents.length; i < n; i++)
-			{
-				if (typeof(aOnloadEvents[i]) == 'function')
-					aOnloadEvents[i]();
-				else if (typeof(aOnloadEvents[i]) == 'string')
-					eval(aOnloadEvents[i]);
-			}
-		}
-	}
-
-	// This isn't the first event function, add it to the list.
-	else
-		aOnloadEvents[aOnloadEvents.length] = fNewOnload;
-}
-
-// Get the text in a code tag.
-function smfSelectText(oCurElement, bActOnElement)
-{
-	// The place we're looking for is one div up, and next door - if it's auto detect.
-	if (typeof(bActOnElement) == 'boolean' && bActOnElement)
-		var oCodeArea = document.getElementById(oCurElement);
-	else
-		var oCodeArea = oCurElement.parentNode.nextSibling;
-
-	if (typeof(oCodeArea) != 'object' || oCodeArea == null)
-		return false;
-
-	// Start off with my favourite, internet explorer.
-	if ('createTextRange' in document.body)
-	{
-		var oCurRange = document.body.createTextRange();
-		oCurRange.moveToElementText(oCodeArea);
-		oCurRange.select();
-	}
-	// Firefox at el.
-	else if (window.getSelection)
-	{
-		var oCurSelection = window.getSelection();
-		// Safari is special!
-		if (oCurSelection.setBaseAndExtent)
-		{
-			oCurSelection.setBaseAndExtent(oCodeArea, 0, oCodeArea, oCodeArea.childNodes.length);
-		}
-		else
-		{
-			var curRange = document.createRange();
-			curRange.selectNodeContents(oCodeArea);
-
-			oCurSelection.removeAllRanges();
-			oCurSelection.addRange(curRange);
-		}
-	}
-
-	return false;
+	window.addEventListener("load", fNewOnload);
 }
 
 // A function used to clean the attachments on post page
@@ -1648,16 +1541,16 @@ function updateActionDef(optNum)
 function makeToggle(el, text)
 {
 	var t = document.createElement("a");
-	t.href = 'javascript:void(0);';
+	t.role = 'button';
+	t.tabindex = '0';
 	t.textContent = text;
 	t.className = 'toggle_down';
-	createEventListener(t);
 	t.addEventListener('click', function()
 	{
 		var d = this.nextSibling;
 		d.classList.toggle('hidden');
 		this.className = this.className == 'toggle_down' ? 'toggle_up' : 'toggle_down';
-	}, false);
+	});
 	el.classList.add('hidden');
 	el.parentNode.insertBefore(t, el);
 }
@@ -1744,118 +1637,103 @@ $(function() {
 		return result;
 	});
 
-	// Generic event for smfSelectText()
-	$('.smf_select_text').on('click', function(e) {
-		e.preventDefault();
+	attachBbCodeEvents(document);
+});
 
-		// Do you want to target yourself?
-		var actOnElement = $(this).attr('data-actonelement');
+function attachBbCodeEvents(parent)
+{
+	parent.querySelectorAll('.bbc_code').forEach(item =>
+	{
+		const selectButton = document.createElement('button');
+		selectButton.textContent = item.dataset.selectTxt;
+		selectButton.className = 'reset link';
+		selectButton.addEventListener('click', function() 
+		{
+			window.getSelection().selectAllChildren(item);
+		});
+		item.previousSibling.append(' [', selectButton, ']');
 
-		return typeof actOnElement !== "undefined" ? smfSelectText(actOnElement, true) : smfSelectText(this);
-	});
-
-	// Show the Expand bbc button if needed
-	$('.bbc_code').each(function(index, item) {
-		if($(item).css('max-height') == 'none')
+		// Show the Expand bbc button if needed
+		if (item.innerHeight < item.scrollHeight)
 			return;
 
-		if($(item).prop('scrollHeight') > parseInt($(item).css('max-height'), 10))
-			$(item.previousSibling).find('.smf_expand_code').removeClass('hidden');
-	});
-	// Expand or Shrink the code bbc area
-	$('.smf_expand_code').on('click', function(e) {
-		e.preventDefault();
-
-		var oCodeArea = this.parentNode.nextSibling;
-
-		if(oCodeArea.classList.contains('expand_code')) {
-			$(oCodeArea).removeClass('expand_code');
-			$(this).html($(this).attr('data-expand-txt'));
-		}
-		else {
-			$(oCodeArea).addClass('expand_code');
-			$(this).html($(this).attr('data-shrink-txt'));
-		}
+		const expandButton = document.createElement('button');
+		expandButton.textContent = item.dataset.expandTxt;
+		expandButton.className = 'reset link';
+		expandButton.addEventListener('click', function()
+		{
+			if (item.classList.contains('expand_code'))
+			{
+				item.classList.remove('expand_code');
+				this.textContent = item.dataset.expandTxt;
+			}
+			else
+			{
+				item.classList.add('expand_code');
+				this.textContent = item.dataset.shrinkTxt;
+			}
+		});
+		item.previousSibling.append(' [', expandButton, ']');
 	});
 
 	// Expand quotes
-	if ((typeof(smf_quote_expand) != 'undefined') && (smf_quote_expand > 0))
-	{
-		$('blockquote').each(function(index, item) {
-
-			let cite = $(item).find('cite').first();
-			let quote_height = parseInt($(item).height());
-
-			if(quote_height < smf_quote_expand)
+	if (typeof smf_quote_expand != 'undefined' && !/\D/.test(smf_quote_expand))
+		for (const el of parent.getElementsByTagName('blockquote'))
+		{
+			if (el.offsetHeight < smf_quote_expand)
 				return;
 
-			$(item).css({
-				'overflow-y': 'hidden',
-				'max-height': smf_quote_expand +'px'
+			const fn = (p, idx, l) =>
+			{
+				for (const a of p.getElementsByTagName('a'))
+					if (a.href || idx === '0')
+						a.setAttribute('tabindex', idx);
+			};
+			const a = document.createElement('a');
+			fn(el, '-1', a);
+			a.textContent = smf_txt_expand;
+			a.className = 'expand';
+			a.setAttribute('role', 'button');
+			if (el.parentNode.tagName != 'BLOCKQUOTE')
+				a.setAttribute('tabindex', '0');
+			a.addEventListener('click', function()
+			{
+				const d = this.parentNode;
+				d.classList.remove('expand');
+				this.remove();
+				fn(d, '0');
 			});
+			a.addEventListener('keydown', function(e)
+			{
+				// Keypresses other then Enter and Space should not trigger a command
+				if (e.keyCode != 13 && e.keyCode != 32)
+					return;
 
-			let anchor = $('<a/>', {
-				text: ' [' + smf_txt_expand + ']',
-				class: 'expand'
+				this.click();
+				e.preventDefault();
 			});
-
-			if (cite.length)
-				cite.append(anchor);
-
-			$(item).on('click', 'a.expand', function(event) {
-				event.preventDefault();
-
-				if (smf_quote_expand < parseInt($(item).height()))
-				{
-					cite.find('a.expand').text(' ['+ smf_txt_expand +']');
-					$(item).css({
-						'overflow-y': 'hidden',
-						'max-height': smf_quote_expand +'px'
-					});
-				}
-
-				else
-				{
-					cite.find('a.expand').text(' ['+ smf_txt_shrink +']');
-					$(item).css({
-						'overflow-y': 'visible',
-						'max-height': (quote_height + 10) +'px'
-					});
-
-					expand_quote_parent($(item));
-				}
-
-				return false;
-			});
-		});
-	}
+			el.classList.add('expand');
+			el.style.setProperty('--height', smf_quote_expand + 'px');
+			el.append(a);
+		}
 });
 
-function expand_quote_parent(oElement)
+function avatar_fallback(e)
 {
-	$.each(oElement.parentsUntil('div.inner'), function( index, value ) {
-		$(value).css({
-			'overflow-y': 'visible',
-			'max-height': '',
-		}).find('a.expand').first().text(' ['+ smf_txt_shrink +']');
-	});
-}
-
-function avatar_fallback(e) {
-    var e = window.e || e;
+	var e = window.e || e;
 	var default_url = smf_avatars_url + '/default.png';
 
-    if (e.target.tagName !== 'IMG' || !e.target.classList.contains('avatar') || e.target.src === default_url )
-        return;
+	if (e.target.tagName !== 'IMG' || !e.target.classList.contains('avatar') || e.target.src === default_url )
+		return;
 
 	e.target.src = default_url;
 	return true;
 }
 
 if (document.addEventListener)
-    document.addEventListener("error", avatar_fallback, true);
+	document.addEventListener("error", avatar_fallback, true);
 else
-    document.attachEvent("error", avatar_fallback);
+	document.attachEvent("error", avatar_fallback);
 
 // SMF Preview handler.
 function smc_preview_post(oOptions)
@@ -1965,14 +1843,7 @@ smc_preview_post.prototype.onDocSent = function (XMLDoc)
 			bodyText += preview.getElementsByTagName('body')[0].childNodes[i].nodeValue;
 
 	setInnerHTML(document.getElementById(this.opts.sPreviewBodyContainerID), bodyText);
-	$('#' + this.opts.sPreviewBodyContainerID + ' .smf_select_text').on('click', function(e) {
-		e.preventDefault();
-
-		// Do you want to target yourself?
-		var actOnElement = $(this).attr('data-actonelement');
-
-		return typeof actOnElement !== "undefined" ? smfSelectText(actOnElement, true) : smfSelectText(this);
-	});
+	attachBbCodeEvents();
 	document.getElementById(this.opts.sPreviewBodyContainerID).className = 'windowbg';
 
 	// Show a list of errors (if any).
@@ -2059,7 +1930,4 @@ smc_preview_post.prototype.onDocSent = function (XMLDoc)
 	}
 
 	location.hash = '#' + this.opts.sPreviewSectionContainerID;
-
-	if (typeof(smf_codeFix) != 'undefined')
-		smf_codeFix();
 }

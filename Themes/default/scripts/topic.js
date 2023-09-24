@@ -16,30 +16,22 @@ function QuickModifyTopic(oOptions)
 // Used to initialise the object event handlers
 QuickModifyTopic.prototype.init = function ()
 {
-	// Attach some events to it so we can respond to actions
-	this.oTopicModHandle.instanceRef = this;
-
-	// detect and act on keypress
-	this.oTopicModHandle.onkeydown = function (oEvent) {return this.instanceRef.modify_topic_keypress(oEvent);};
+	// Detect and act on keypress
+	this.oTopicModHandle.onkeydown = this.modify_topic_keypress.bind(this);
 
 	// Used to detect when we've stopped editing.
-	this.oTopicModHandle.onclick = function (oEvent) {return this.instanceRef.modify_topic_click(oEvent);};
-}
+	this.oTopicModHandle.onclick = this.modify_topic_click.bind(this);
+};
 
 // called from the double click in the div
 QuickModifyTopic.prototype.modify_topic = function (topic_id, first_msg_id)
 {
-	// Add backwards compatibility with old themes.
-	if (typeof(cur_session_var) == 'undefined')
-		cur_session_var = 'sesc';
-
 	// already editing
 	if (this.bInEditMode)
 	{
-		// same message then just return, otherwise drop out of this edit.
-		if (this.iCurTopicId == topic_id)
+		// Same message then just return, otherwise drop out of this edit.
+		if (this.iCurTopicId === topic_id)
 			return;
-
 		else
 			this.modify_topic_cancel();
 	}
@@ -141,12 +133,11 @@ QuickModifyTopic.prototype.modify_topic_done = function (XMLDoc)
 		return true;
 	}
 
-	var message = XMLDoc.getElementsByTagName("smf")[0].getElementsByTagName("message")[0];
-	var subject = message.getElementsByTagName("subject")[0];
-	var error = message.getElementsByTagName("error")[0];
+	var message = XMLDoc.getElementsByTagName("elk")[0].getElementsByTagName("message")[0],
+		subject = message.getElementsByTagName("subject")[0],
+		error = message.getElementsByTagName("error")[0];
 
 	// No subject or other error?
-
 	if (!subject || error)
 		return false;
 
@@ -293,7 +284,7 @@ function QuickModify(oOptions)
 }
 
 // Function called when a user presses the edit button.
-QuickModify.prototype.modifyMsg = function (iMessageId, blnShowSubject)
+QuickModify.prototype.modifyMsg = function (iMessageId)
 {
 	// Add backwards compatibility with old themes.
 	if (typeof(sSessionVar) == 'undefined')
@@ -379,8 +370,22 @@ QuickModify.prototype.modifyCancel = function ()
 	// Roll back the HTML to its original state.
 	if (this.oCurMessageDiv)
 	{
-		setInnerHTML(this.oCurMessageDiv, this.sMessageBuffer);
-		setInnerHTML(this.oCurSubjectDiv, this.sSubjectBuffer);
+		this.oCurMessageDiv.innerHTML = this.sMessageBuffer;
+		this.oCurInfoDiv.innerHTML = this.sInfoBuffer;
+		this.oCurSubjectDiv.innerHTML = this.sSubjectBuffer;
+		if (this.oCurSubjectDiv !== null)
+		{
+			this.oCurSubjectDiv.style.display = '';
+		}
+	}
+
+	// Hide the message icon if we are doing that
+	if (this.opt.sIconHide)
+	{
+		var oCurrentMsgIcon = document.getElementById('msg_icon_' + this.sCurMessageId.replace("msg_", ""));
+
+		if (oCurrentMsgIcon !== null && oCurrentMsgIcon.src.indexOf(this.opt.sIconHide) > 0)
+			this.oMsgIcon.style.display = 'none';
 	}
 
 	// No longer in edit mode, that's right.
@@ -405,9 +410,13 @@ QuickModify.prototype.modifyCancel = function ()
 	return false;
 }
 
-// The function called after a user wants to save her/his precious message.
+// The function called after a user wants to save his precious message.
 QuickModify.prototype.modifySave = function (sSessionId, sSessionVar)
 {
+	var i = 0,
+		x = [],
+		uIds = [];
+
 	// We cannot save if we weren't in edit mode.
 	if (!this.bInEditMode)
 		return true;
@@ -518,10 +527,6 @@ function InTopicModeration(oOptions)
 	this.bButtonsShown = false;
 	this.iNumSelected = 0;
 
-	// Add backwards compatibility with old themes.
-	if (typeof(this.opt.sSessionVar) == 'undefined')
-		this.opt.sSessionVar = 'sesc';
-
 	this.init();
 }
 
@@ -536,10 +541,7 @@ InTopicModeration.prototype.init = function()
 		oCheckbox.className = this.opt.sButtonStrip + '_check';
 		oCheckbox.name = 'msgs[]';
 		oCheckbox.value = this.opt.aMessageIds[i];
-		oCheckbox.instanceRef = this;
-		oCheckbox.onclick = function () {
-			this.instanceRef.handleClick(this);
-		}
+		oCheckbox.onclick = this.handleClick(oCheckbox).bind(this);
 
 		// Append it to the container
 		var oCheckboxContainer = document.getElementById(this.opt.sCheckboxContainerMask + this.opt.aMessageIds[i]);
@@ -573,31 +575,37 @@ InTopicModeration.prototype.handleClick = function(oCheckbox)
 		// Add the 'remove selected items' button.
 		if (this.opt.bCanRemove)
 			smf_addButton(this.opt.sButtonStripDisplay, this.opt.bUseImageButton, {
-				sId: this.opt.sSelf + '_remove_button',
+				sId: 'remove_button',
 				sText: this.opt.sRemoveButtonLabel,
 				sImage: this.opt.sRemoveButtonImage,
 				sUrl: '#',
-				sCustom: ' onclick="return ' + this.opt.sSelf + '.handleSubmit(\'remove\')"'
+				aEvents: [
+					['click', this.handleSubmit.bind(this, 'remove')]
+				]
 			});
 
 		// Add the 'restore selected items' button.
 		if (this.opt.bCanRestore)
 			smf_addButton(this.opt.sButtonStripDisplay, this.opt.bUseImageButton, {
-				sId: this.opt.sSelf + '_restore_button',
+				sId: 'restore_button',
 				sText: this.opt.sRestoreButtonLabel,
 				sImage: this.opt.sRestoreButtonImage,
 				sUrl: '#',
-				sCustom: ' onclick="return ' + this.opt.sSelf + '.handleSubmit(\'restore\')"'
+				aEvents: [
+					['click', this.handleSubmit.bind(this, 'restore')]
+				]
 			});
 
 		// Add the 'split selected items' button.
 		if (this.opt.bCanSplit)
 			smf_addButton(this.opt.sButtonStripDisplay, this.opt.bUseImageButton, {
-				sId: this.opt.sSelf + '_split_button',
+				sId: 'split_button',
 				sText: this.opt.sSplitButtonLabel,
 				sImage: this.opt.sSplitButtonImage,
 				sUrl: '#',
-				sCustom: ' onclick="return ' + this.opt.sSelf + '.handleSubmit(\'split\')"'
+				aEvents: [
+					['click', this.handleSubmit.bind(this, 'split')]
+				]
 			});
 
 		// Adding these buttons once should be enough.
@@ -607,29 +615,30 @@ InTopicModeration.prototype.handleClick = function(oCheckbox)
 	// Keep stats on how many items were selected.
 	this.iNumSelected += oCheckbox.checked ? 1 : -1;
 
-	// Show the number of messages selected in the button.
+	// Show the number of messages selected in each of the buttons.
 	if (this.opt.bCanRemove && !this.opt.bUseImageButton)
 	{
-		setInnerHTML(document.getElementById(this.opt.sSelf + '_remove_button_text'), this.opt.sRemoveButtonLabel + ' <span class="amt">' + this.iNumSelected + '</span>');
-		document.getElementById(this.opt.sSelf + '_remove_button_text').style.display = this.iNumSelected < 1 ? "none" : "";
+		oButtonStrip.getElementById('remove_button_text').innerHTML = this.opt.sRemoveButtonLabel + ' [' + this.iNumSelected + ']';
+		oButtonStrip.getElementById('remove_button').style.display = this.iNumSelected < 1 ? "none" : "";
 	}
 
 	if (this.opt.bCanRestore && !this.opt.bUseImageButton)
 	{
-		setInnerHTML(document.getElementById(this.opt.sSelf + '_restore_button_text'), this.opt.sRestoreButtonLabel + ' <span class="amt">' + this.iNumSelected + '</span>');
-		document.getElementById(this.opt.sSelf + '_restore_button_text').style.display = this.iNumSelected < 1 ? "none" : "";
+		oButtonStrip.getElementById('restore_button_text').innerHTML = this.opt.sRestoreButtonLabel + ' [' + this.iNumSelected + ']';
+		oButtonStrip.getElementById('restore_button').style.display = this.iNumSelected < 1 ? "none" : "";
 	}
 
 	if (this.opt.bCanSplit && !this.opt.bUseImageButton)
 	{
-		setInnerHTML(document.getElementById(this.opt.sSelf + '_split_button_text'), this.opt.sSplitButtonLabel + ' <span class="amt">' + this.iNumSelected + '</span>');
-		document.getElementById(this.opt.sSelf + '_split_button_text').style.display = this.iNumSelected < 1 ? "none" : "";
+		oButtonStrip.getElementById('split_button_text').innerHTML = this.opt.sSplitButtonLabel + ' [' + this.iNumSelected + ']';
+		oButtonStrip.getElementById('split_button').style.display = this.iNumSelected < 1 ? "none" : "";
 	}
 
 	if(typeof smf_fixButtonClass == 'function')
 		smf_fixButtonClass(this.opt.sButtonStrip);
 }
 
+// Called when the user clicks one of the buttons that we added
 InTopicModeration.prototype.handleSubmit = function (sSubmitType)
 {
 	var oForm = document.getElementById(this.opt.sFormId);
@@ -656,7 +665,7 @@ InTopicModeration.prototype.handleSubmit = function (sSubmitType)
 				return false;
 
 			oForm.action = oForm.action.replace(/;split_selection=1/, '');
-			oForm.action = oForm.action + ';restore_selected=1';
+			oForm.action += ';restore_selected=1';
 		break;
 
 		case 'split':
@@ -664,7 +673,7 @@ InTopicModeration.prototype.handleSubmit = function (sSubmitType)
 				return false;
 
 			oForm.action = oForm.action.replace(/;restore_selected=1/, '');
-			oForm.action = oForm.action + ';split_selection=1';
+			oForm.action += ';split_selection=1';
 		break;
 
 		default:

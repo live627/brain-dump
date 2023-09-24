@@ -765,8 +765,7 @@ function template_search()
 				</dt>
 				<dd>
 					<input type="search" name="search"', !empty($context['search_params']['search']) ? ' value="' . $context['search_params']['search'] . '"' : '', ' size="40">
-					<script>
-						createEventListener(window);
+					<script
 						window.addEventListener("load", initSearch, false);
 					</script>
 				</dd>
@@ -1278,10 +1277,9 @@ function template_send()
 	echo '
 		<script>
 			var oPersonalMessageSend = new smf_PersonalMessageSend({
-				sSelf: \'oPersonalMessageSend\',
 				sSessionId: smf_session_id,
 				sSessionVar: smf_session_var,
-				sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+				sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 				sToControlId: \'to_control\',
 				aToRecipients: [';
 

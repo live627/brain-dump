@@ -829,14 +829,12 @@ function template_editBuddies()
 	</form>
 	<script>
 		var oAddBuddySuggest = new smc_AutoSuggest({
-			sSelf: \'oAddBuddySuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'new_buddy\',
 			sControlId: \'new_buddy\',
 			sSearchType: \'member\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
-			bItemList: false
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . '
 		});
 	</script>';
 }
@@ -942,14 +940,12 @@ function template_editIgnoreList()
 	</form>
 	<script>
 		var oAddIgnoreSuggest = new smc_AutoSuggest({
-			sSelf: \'oAddIgnoreSuggest\',
-			sSessionId: \'', $context['session_id'], '\',
-			sSessionVar: \'', $context['session_var'], '\',
+			sSessionId: smf_session_id,
+			sSessionVar: smf_session_var,
 			sSuggestId: \'new_ignore\',
 			sControlId: \'new_ignore\',
 			sSearchType: \'member\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
-			bItemList: false
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . '
 		});
 	</script>';
 }

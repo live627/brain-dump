@@ -131,7 +131,6 @@ function template_control_richedit_buttons($editor_id)
 		</span>
 		<script>
 			var oDraftAutoSave = new smf_DraftAutoSave({
-				sSelf: \'oDraftAutoSave\',
 				sLastNote: \'draft_lastautosave\',
 				sLastID: \'id_pm_draft\',
 				sSceditorID: \'', $editor_id, '\',
@@ -151,7 +150,6 @@ function template_control_richedit_buttons($editor_id)
 		</span>
 		<script>
 			var oDraftAutoSave = new smf_DraftAutoSave({
-				sSelf: \'oDraftAutoSave\',
 				sLastNote: \'draft_lastautosave\',
 				sLastID: \'id_draft\',
 				sSceditorID: \'', $editor_id, '\',

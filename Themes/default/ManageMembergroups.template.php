@@ -358,7 +358,6 @@ function template_edit_group()
 		</form>
 	<script>
 		var oModeratorSuggest = new smc_AutoSuggest({
-			sSelf: \'oModeratorSuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'group_moderators\',
@@ -367,7 +366,7 @@ function template_edit_group()
 			bItemList: true,
 			sPostName: \'moderator_list\',
 			sURLMask: \'action=profile;u=%item_id%\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 			sItemListContainerId: \'moderator_container\',
 			aListItems: [';
 
@@ -695,15 +694,14 @@ function template_group_members()
 		echo '
 	<script>
 		var oAddMemberSuggest = new smc_AutoSuggest({
-			sSelf: \'oAddMemberSuggest\',
-			sSessionId: \'', $context['session_id'], '\',
-			sSessionVar: \'', $context['session_var'], '\',
+			sSessionId: smf_session_id,
+			sSessionVar: smf_session_var,
 			sSuggestId: \'to_suggest\',
 			sControlId: \'toAdd\',
 			sSearchType: \'member\',
 			sPostName: \'member_add\',
 			sURLMask: \'action=profile;u=%item_id%\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . ',
 			bItemList: true,
 			sItemListContainerId: \'toAddItemContainer\'
 		});

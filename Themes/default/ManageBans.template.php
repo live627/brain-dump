@@ -207,14 +207,12 @@ function template_ban_edit()
 	if ($context['ban']['is_new'] && empty($_REQUEST['u']))
 		echo '
 		var oAddMemberSuggest = new smc_AutoSuggest({
-			sSelf: \'oAddMemberSuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'user\',
 			sControlId: \'user\',
 			sSearchType: \'member\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
-			bItemList: false
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . '
 		});
 
 		function onUpdateName(oAutoSuggest)
@@ -316,14 +314,12 @@ function template_ban_edit_trigger()
 	</div><!-- #manage_bans -->
 	<script>
 		var oAddMemberSuggest = new smc_AutoSuggest({
-			sSelf: \'oAddMemberSuggest\',
 			sSessionId: smf_session_id,
 			sSessionVar: smf_session_var,
 			sSuggestId: \'username\',
 			sControlId: \'user\',
 			sSearchType: \'member\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
-			bItemList: false
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . '
 		});
 
 		function onUpdateName(oAutoSuggest)

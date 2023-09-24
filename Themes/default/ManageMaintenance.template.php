@@ -225,10 +225,10 @@ function template_maintain_members()
 
 			document.getElementById(\'do_attribute\').disabled = valid ? \'\' : \'disabled\';
 
-			setTimeout("checkAttributeValidity();", 500);
+			setTimeout(checkAttributeValidity, 500);
 			return valid;
 		}
-		setTimeout("checkAttributeValidity();", 500);
+		setTimeout(checkAttributeValidity, 500);
 	</script>
 	<div id="manage_maintenance">';
 
@@ -331,8 +331,7 @@ function template_maintain_members()
 			sSuggestId: \'attributeMember\',
 			sControlId: \'to\',
 			sSearchType: \'member\',
-			sTextDeleteItem: \'', $txt['autosuggest_delete_item'], '\',
-			bItemList: false
+			sTextDeleteItem: ' . JavaScriptEscape($txt['autosuggest_delete_item']) . '
 		});
 	</script>';
 }
